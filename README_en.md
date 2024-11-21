@@ -2,7 +2,7 @@
 
 ## The idea
 
-Imagine you can represent functional processes in Go, as in my examples, and later forward them to a BPMN engine for execution. That's all there is to the idea. It can be that simple. Saves an additional modeler and many a Go developer remains entirely in their habitat.
+Imagine you can represent functional processes in Go, as in my examples, and later forward them to a BPMN engine for execution. That's all to the idea. It can be that simple. Saves an additional modeler and many Go developer remains entirely in their habitat.
 
 ## Fundamentals
 
@@ -17,7 +17,7 @@ The second version, in which I have split a previously single repository, can be
 ***To avoid further headaches, please concentrate on the status of the third version first***
 
 The first version of my approach also differs from the other versions in that a process can be represented in BPMN as a complete model with a diagram. However, this is a very complex concept. The following versions do not deal with an additional diagram, but only with the representation of a process in the BPMN format of Camunda 7.
-The current version, in contrast to the (almost) complete data structures in the other versions, is very abbreviated in terms of the elements and their fields. I had to do this because a) I want to somehow reproduce the whole thing on Medium.com and b) to get on faster without having to deal with additional “data garbage” (which is none).
+The current version, in contrast to the (almost) complete data structures in the other versions, is very abbreviated in terms of the elements and their fields. I had to do this because a) I want to somehow reproduce the whole thing on Medium.com and b) to get on faster without having to deal with additional “data garbage” (which is not really garbage at all).
 
 ### Two more tools
 
@@ -77,6 +77,6 @@ Here you will find outsourced methods that I use as functions. Simply to avoid h
 
 So a diagram still has to be added. Certainly! But that requires a little more knowledge. I made my first attempts in the gobmnLab repository (see directory “examples” or “models/bpmn/canvas”). Among other things, I had to deal with fixed-point notation and line crossing. Determining the waypoints is another topic in itself. All in all, compiling a diagram using reflection is far more complex than just displaying a process itself (gaining knowledge).
 
-In the future, I would also like to be able to display the different formats in the same order as they are arranged in the sample data structures. At the moment, the sequence is displayed as it can be found in elements.go, in the process data structure (Proces).
+In the future, I would also like to be able to display the different formats in the same order as they are arranged in the sample data structures. At the moment, the sequence is displayed as it can be found in elements.go, in the process data structure (Process).
 
 But what is most important to me at the moment is to inspire other developers for this approach and to receive support of their own free will. There must still be some geniuses out there who find the whole thing helpful and who might be able to grasp my approach and make it even better.
