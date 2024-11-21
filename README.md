@@ -76,11 +76,11 @@ Um zu unterscheiden, mit was für einen Prozessaufbau ich es eigentlich zu tun h
 
 ## Die internal.go
 
-Hier befinden sich ausgelagerte Methoden, die ich als Funktionen nutze. Einfach, um nicht bis auf Zeile 1000 herunterscrollen zu müssen. Ich habe die Abschnitte für die jeweilige Ausführung eines Beispieles gekennzeichnet, so dass man nicht den Überblick verliert. Auch hier befinden sich sogenannten Notizen und Beschreibungen.
+Hier befinden sich ausgelagerte Methoden, die ich als Funktionen nutze. Einfach, um nicht bis auf Zeile 1000 herunterscrollen zu müssen. Ich habe die Abschnitte für die jeweilige Ausführung eines Beispieles gekennzeichnet, so dass man nicht den Überblick verliert. Auch hier befinden sich sogenannte Notizen und Beschreibungen.
 
 ## Wünsche für die Zukunft
 
-Also ein Diagram muss noch dazu kommen. Sicherlich! Aber dazu brauch es dann auch noch ein wenig mehr Kenntnisse. Meine ersten Gehversuche habe ich dahingehend in der Repository gobmnLab (siehe Verzeichnis "examples" oder "models/bpmn/canvas") gesammelt. Unter anderem musste ich mich mit Fixed-Point-Notation und Linienüberschreitung beschäftigen. Auch die Ermittlung der Wegpunkte, ist noch einmal ein Thema für sich. Alles in Allem ist eine Kompilierung eins Diagrams mittels Reflektion weitaus aufwendiger, als nur die Darstellung eines Prozesses selbst (Erkenntnisgewinn).
+Also ein Diagram muss noch dazu kommen. Sicherlich! Aber dazu brauch es dann auch noch ein wenig mehr Kenntnisse. Meine ersten Gehversuche habe ich dahingehend in der Repository gobmnLab (siehe Verzeichnis "examples" oder "models/bpmn/canvas") gesammelt. Unter anderem musste ich mich mit Fixed-Point-Notation und Linienüberschreitung beschäftigen. Auch die Ermittlung der Wegpunkte ist noch einmal ein Thema für sich. Alles in Allem ist eine Kompilierung eins Diagrams mittels Reflektion weitaus aufwendiger, als nur die Darstellung eines Prozesses selbst (Erkenntnisgewinn).
 
 Auch bei der Ausgabe der verschiedenen Formate, wünsche ich mir in Zukunft die Möglichkeit, die selbe Reihenfolge darzustellen, wie sie in den Beispieldatenstrukturen angeordnet sind. Im Moment wird die Reihenfolge dargestellt, wie sie in der elements.go, in der Prozess-Datenstruktur (Proces) zu finden ist.
 
