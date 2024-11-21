@@ -70,9 +70,9 @@ Ich habe eine reflektierte Instanz in v.Target, in der ich zuerst einmal die Pro
 
 ## Ablauflogiken in quantity.go und mapping.go
 
-In meinen bisherigen Ansatz muss ich viel zählen. Ich muss wissen, wieviele Elemente ich erstellen muss. Die Schrwierigkeite besteht hier auf jeden Fall darin, eine richtige Indexierung anhand von Schlüsselwerten vorzunehmen. Dazu hilft mir die quantity.go-Datei.
+In meinen bisherigen Ansatz muss ich viel zählen. Ich muss wissen, wieviele Elemente ich erstellen muss. Die Schwierigkeit besteht hier auf jeden Fall darin, eine richtige Indexierung anhand von Schlüsselwerten vorzunehmen. Dazu hilft mir die quantity.go-Datei.
 
-Um zu unterscheiden, mit was für einen Prozessaufbau ich es eigentlich zu tun habe, benötige ich eine Aufteilung, die ich in der mapping.go vornehme. In meinem Regelsatz befindet sich auf jeden Fall ein versuch, eine Kollaboration mittels anonymer Felder in einer Datenstruktur zu erkennen und dann auszuführen.
+Um zu unterscheiden, mit was für einen Prozessaufbau ich es eigentlich zu tun habe, benötige ich eine Aufteilung, die ich in der mapping.go vornehme. In meinem Regelsatz befindet sich auf jeden Fall ein Versuch, eine Kollaboration mittels anonymer Felder in einer Datenstruktur zu erkennen und dann auszuführen.
 
 ## Die internal.go
 
