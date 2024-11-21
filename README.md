@@ -10,7 +10,7 @@ Stell dir mal vor, man kann, wie in meinen Beispielen, funktionsfähige Prozesse
 
 Ich bediene mich der Extreme-Programming-Methodologie, d.h. keine Tricks, sondern einfaches herunterspulen von Variablen, Schleifen und anschließender Refaktorisierung. Klassischer Aufbau für Anfänger rundet das Gesamtbild, einer sich in Entwicklung befindlicher Anwendung, ab. Ich glaube, sonst wäre ich bis Heute noch längst nicht soweit. Außerdem wirst du, wie Go halt so tickt, viel Pass-By-Value in meinen aufgebauten Methodiken finden. Und manches ist sicherlich noch nicht sehr schön, aber hey, es funktioniert.
 
-Das Projekt diente zuerste meiner eigenen Weiterbildung in Go. Ich mag Go sehr. Angefangen habe ich mit PHP anno 1999 in der dritten Version.
+Das Projekt diente zuerst meiner eigenen Weiterbildung in Go. Ich mag Go sehr. Angefangen habe ich mit PHP anno 1999 in der dritten Version.
 Ich bin glücklich, mich nicht mehr mit PHP im privaten zu beschäftigen. Nun ist aus dem Projekt etwas entstanden, bei dem ich glaube, der Go-Community etwas zurückgeben zu können. Aber das müssen andere (für sich) entscheiden. Vielleicht auch Du?
 
 Den jetzigen Stand der Idee würde ich als dritte Version betiteln. Vorherige Versionen sind auf github, in meinem Account, zu finden.
