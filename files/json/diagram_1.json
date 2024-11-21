@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{
+   "id": "Definitions_1778aa0e",
+   "process": [
+     {
+       "id": "Process_fbc91a65",
+       "name": "Process",
+       "isExecutable": true,
+       "startEvent": [
+         {
+           "id": "StartEvent_1",
+           "name": "StartEvent",
+           "outgoing": [
+             {
+               "flow": "Flow_45c64e2d"
+             }
+           ]
+         }
+       ],
+       "endEvent": [
+         {
+           "id": "Event_9a926cd1",
+           "name": "EndEvent",
+           "incoming": [
+             {
+               "flow": "Flow_9a926cd1"
+             }
+           ]
+         }
+       ],
+       "task": [
+         {
+           "id": "Activity_2e9b17ee",
+           "name": "Task"
+         }
+       ],
+       "sequenceFlow": [
+         {
+           "id": ""
+         },
+         {
+           "id": ""
+         }
+       ]
+     }
+   ]
+ }
