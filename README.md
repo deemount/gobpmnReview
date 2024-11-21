@@ -20,7 +20,7 @@ Die zweite Version, bei der ich eine Aufteilung, einer vorher einzigen Repositor
 
 Die erste Version meines Ansatzes unterscheidet sich auch noch dahingehend zu den anderen Versionen, dass ein Prozess in BPMN als vollständiges Modell mit Diagram dargestellt werden kann. Ist aber sehr aufwendig konzipiert. Die nachfolgenden Versionen beschäftigen sich nicht mit einem zusätzlichen Diagram, sondern nur mit der Darstellung eines Prozesses im BPMN-Format von Camunda 7.
 
-Der jetzige Stand, ist von den Elemente und deren Felder im Gegensatz zu den (fast) vollständigen Datenstrukturen in den anderen Versionen, stark gekürzt. Ich musste das machen, weil ich a) das Ganze irgendwie noch auf Medium.com wiedergeben will und um b) schneller weiterzugelangen, ohne mich mit zusätzlichen "Datenmüll" (der ja keiner ist) zu beschäftigen.
+Der jetzige Stand ist von den Elemente und deren Felder, im Gegensatz zu den (fast) vollständigen Datenstrukturen in den anderen Versionen, stark gekürzt. Ich musste das machen, weil ich a) das Ganze irgendwie noch auf Medium.com wiedergeben will und um b) schneller weiterzugelangen, ohne mich mit zusätzlichen "Datenmüll" (der ja keiner ist) zu beschäftigen.
 
 ### Noch zwei Werkzeuge
 
