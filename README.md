@@ -24,7 +24,7 @@ Der jetzige Stand ist von den Elemente und deren Felder, im Gegensatz zu den (fa
 
 ### Noch zwei Werkzeuge
 
-Ich nutze den Camunda Modeller, der auch die Version 7 darstellen kann, um die Aufteilung eines Business Process Model in XML zu verstehen und nachzubauen. Ich rate daher, sich dieses Tool selbst zu installieren, um besser zu verstehen. Außerdem empfhle ich dir noch von der OMG, die Dokumentation zu BPMN herunterzuladen.
+Ich nutze den Camunda Modeller, der auch die Version 7 darstellen kann, um die Aufteilung eines Business Process Model in XML zu verstehen und nachzubauen. Ich rate daher, sich dieses Tool selbst zu installieren, um besser zu verstehen. Außerdem empfehle ich dir noch von der OMG, die Dokumentation zu BPMN herunterzuladen.
 
 ### Der Ansatz als Blaupause und Datenstruktur
 
