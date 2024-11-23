@@ -9,21 +9,10 @@ import (
 // quantity holds all the quantities of the BPMN elements
 // in the BPMN model. It is used to count the number of elements
 type quantity struct {
-	Pool                   int
-	Process                int
-	Participant            int
-	StartEvent             int // Note: I want to get rid of these from here to Flow
-	EndEvent               int
-	IntermediateCatchEvent int
-	IntermediateThrowEvent int
-	InclusiveGateway       int
-	ExclusiveGateway       int
-	ParallelGateway        int
-	Task                   int
-	UserTask               int
-	ScriptTask             int
-	Flow                   int // Note: all between should till here should be removed. ProcessElements holds all the values
-	ProcessElements        map[int]map[string]int
+	Pool            int
+	Process         int
+	Participant     int
+	ProcessElements map[int]map[string]int
 }
 
 // countPool counts a pool in the process model.
@@ -54,104 +43,118 @@ func (q *quantity) countFieldsInPool(v *reflectValue) {
 			q.Participant++
 		}
 	}
-	q.countFieldsInProcess(v)
 }
 
 // countFieldsInProcess counts the fields in a process and stores them in a map.
-func (q *quantity) countFieldsInProcess(v *reflectValue) {
+func (q *quantity) countFieldsInProcess2(v *reflectValue) {
+	// Initialize the ProcessElements map if nil
 	if q.ProcessElements == nil {
 		q.ProcessElements = make(map[int]map[string]int)
 	}
-	elements := map[string]string{
-		"StartEvent":             "StartEvent",
-		"EndEvent":               "EndEvent",
-		"IntermediateCatchEvent": "IntermediateCatchEvent",
-		"IntermediateThrowEvent": "IntermediateThrowEvent",
-		"ParallelGateway":        "ParallelGateway",
-		"ExclusiveGateway":       "ExclusiveGateway",
-		"InclusiveGateway":       "InclusiveGateway",
-		"Task":                   "Task", // Note: Task is a very general term, which are also used in the other task elements. strings.Contains are not very helpful here (look below)
-		"UserTask":               "UserTask",
-		"ScriptTask":             "ScriptTask",
-		"From":                   "SequenceFlow",
+
+	// Define element types with more specific matching rules
+	elements := map[string]struct {
+		name       string
+		exactMatch bool
+	}{
+		"StartEvent":             {"StartEvent", true},
+		"EndEvent":               {"EndEvent", true},
+		"IntermediateCatchEvent": {"IntermediateCatchEvent", true},
+		"IntermediateThrowEvent": {"IntermediateThrowEvent", true},
+		"ParallelGateway":        {"ParallelGateway", true},
+		"ExclusiveGateway":       {"ExclusiveGateway", true},
+		"InclusiveGateway":       {"InclusiveGateway", true},
+		"UserTask":               {"UserTask", true},
+		"ScriptTask":             {"ScriptTask", true},
+		"Task":                   {"Task", false}, // Will only match if no other task type matches
+		"From":                   {"SequenceFlow", false},
 	}
 
-	for i, field := range v.ProcessName {
-		t := v.Target.FieldByName(field)
+	// Process each process name
+	for i, procName := range v.ProcessName {
+		// Initialize the inner map for this process
 		if q.ProcessElements[i] == nil {
 			q.ProcessElements[i] = make(map[string]int)
 		}
-		if t.IsValid() && t.CanInterface() {
-			for j := 0; j < t.NumField(); j++ {
-				name := t.Type().Field(j).Name
-				if t.Field(j).Kind() == reflect.Struct {
-					for element, counter := range elements {
-						log.Printf("Name: %v, Element: %v, Counter: %v", name, element, counter)
-						if strings.Contains(name, element) && !strings.Contains(name, "From") {
-							q.ProcessElements[i][counter]++ // Bug: it's counting wrong, so that in activities, I haven't the right number of activities
-						}
-					}
-					if strings.HasPrefix(name, "From") {
+		field := reflect.Value{}
+
+		//  check for multiple processes
+		if len(v.ProcessName) > 1 {
+			// Get the fields of multiple processes
+			field = v.Target.FieldByName(procName)
+			if !field.IsValid() {
+				log.Printf("Warning: Invalid field for process %s", procName)
+				continue
+			}
+			// Count elements in the process
+			countElements(field, i, elements, q.ProcessElements)
+		} else {
+
+			// Get the fields of a single process process
+			matched := false
+			for j := 0; j < len(v.Fields); j++ {
+				fieldName := v.Fields[j].Name
+				for element, info := range elements {
+
+					if strings.HasPrefix(fieldName, "From") {
 						q.ProcessElements[i]["SequenceFlow"]++
 					}
+
+					if info.exactMatch {
+						if fieldName == element {
+							q.ProcessElements[i][info.name]++
+							matched = true
+							break
+						}
+					} else if !matched && strings.Contains(fieldName, element) {
+						q.ProcessElements[i][info.name]++
+						matched = true
+						break
+					}
+
 				}
+
 			}
 		}
+
 	}
+
 	log.Printf("Process elements: %v", q.ProcessElements)
 	log.Print("-------------------------")
 }
 
-/*
- * @Note: used in a single process
- */
+// countElements counts the BPMN elements in a reflected struct field
+func countElements(field reflect.Value, processIndex int, elements map[string]struct {
+	name       string
+	exactMatch bool
+}, processElements map[int]map[string]int) {
 
-// countProcess counts all the processes in the BPMN model.
-// Ruleset:
-//   - If the field contains the word "Process" then it is a process.
-func (q *quantity) countProcess(field string) {
-	if strings.Contains(field, "Process") {
-		q.Process++
-	}
-}
+	for j := 0; j < field.NumField(); j++ {
+		fieldName := field.Type().Field(j).Name
 
-// countFlow counts all the flows in the BPMN model.
-// Ruleset:
-//   - If the field contains the word "From" then it is a flow.
-func (q *quantity) countFlow(field string) {
-	if strings.Contains(field, "From") {
-		q.Flow++
-	}
-}
+		// Only process struct fields
+		if field.Field(j).Kind() != reflect.Struct {
+			continue
+		}
 
-// countElement counts all the elements in the BPMN model
-// and increments the counter for each element.
-// Ruleset:
-//   - If the field contains one of the words below and without the word "From"
-//     then it is an element.
-//   - If the field contains the word from one of the words below
-func (q *quantity) countElement(field string) {
+		// Handle sequence flows first
+		if strings.HasPrefix(fieldName, "From") {
+			processElements[processIndex]["SequenceFlow"]++
+			continue
+		}
 
-	// Define a mapping of element types to their corresponding counters.
-	elementCounters := map[string]*int{
-		"StartEvent":             &q.StartEvent,
-		"EndEvent":               &q.EndEvent,
-		"IntermediateCatchEvent": &q.IntermediateCatchEvent,
-		"IntermediateThrowEvent": &q.IntermediateThrowEvent,
-		"InclusiveGateway":       &q.InclusiveGateway,
-		"ExclusiveGateway":       &q.ExclusiveGateway,
-		"ParallelGateway":        &q.ParallelGateway,
-		"UserTask":               &q.UserTask,
-		"Task":                   &q.Task,
-		"ScriptTask":             &q.ScriptTask,
-	}
-
-	// Check if the field is not a flow (i.e., it does not contain "From").
-	if !strings.Contains(field, "From") {
-		// Iterate over the element counters and increment the corresponding counter if the field matches.
-		for element, counter := range elementCounters {
-			if strings.Contains(field, element) {
-				(*counter)++
+		// Handle other elements
+		matched := false
+		for element, info := range elements {
+			if info.exactMatch {
+				if fieldName == element {
+					processElements[processIndex][info.name]++
+					matched = true
+					break
+				}
+			} else if !matched && strings.Contains(fieldName, element) {
+				processElements[processIndex][info.name]++
+				matched = true
 				break
 			}
 		}

@@ -31,14 +31,17 @@ func NewReflectDI(p any) any {
 	m := new(mapping) // Note: Mapping and Quantity is a helper structure and can be put together in a single structure?
 	q := new(quantity)
 	m.Assign(v)
+
 	if len(m.Anonym) > 0 {
-		v.pool(q, m)
+		v.handlePool(q, m)
 	} else {
-		q.Process += 1 // Note: Must be counted and set here. Actually it is used to create a single process (e.g. In m.BPMNType the first element at index 1 is process).
+		v.handleSingle(q, m)
 	}
 	v.reflectProcess(q)
 	di := v.target(q, m) // Note: any solutions with generics here?
-	v.process(q, m)      // Note: with the maps it is possible to build the collaboration after the processes
+	log.Printf("q: %+v", q)
+	log.Print("-------------------------")
+	v.process(q) // Note: with the maps it is possible to build the collaboration after the processes
 	v.collaboration(q)
 
 	return di
@@ -73,24 +76,15 @@ func newReflectValue(p interface{}) *reflectValue {
 	}
 }
 
+/*
+ * @Note: target related
+ */
+
 // target
 func (v *reflectValue) target(q *quantity, m *mapping) any {
 	if len(m.Anonym) > 0 {
 		for _, anonymField := range m.Anonym {
-			targetFieldByName := v.Target.FieldByName(anonymField)
-			targetNumField := targetFieldByName.NumField()
-			for i := 0; i < targetNumField; i++ {
-				name := targetFieldByName.Type().Field(i).Name
-				switch targetFieldByName.Field(i).Kind() {
-				case reflect.Bool:
-					v.config(name, i, targetFieldByName)
-				case reflect.Struct:
-					q.countFlow(name)    // Note: should I count here?
-					q.countElement(name) // Note: should I count here?
-					v.current(i, targetFieldByName)
-					v.next(i, targetFieldByName)
-				}
-			}
+			v.anonym(anonymField, q)
 		}
 	} else {
 		v.nonAnonym(q, m)
@@ -125,7 +119,35 @@ func (v *reflectValue) next(index int, target reflect.Value) {
 }
 
 /*
- * @Note: The following methods are used in a single process.
+ * @Note: process related
+ */
+
+// reflectProcess reflects the processes in the BPMN model.
+// (Note: instead of using two functions to fullfill the reflection for a process,
+// it is possible to use a single function).
+func (v *reflectValue) reflectProcess(q *quantity) {
+	v.Process = make([]reflect.Value, q.Process)
+	v.Def.MethodByName("SetProcess").Call([]reflect.Value{reflect.ValueOf(q.Process)})
+	for j := 0; j < q.Process; j++ {
+		v.Process[j] = v.Def.MethodByName("GetProcess").Call([]reflect.Value{reflect.ValueOf(j)})[0]
+	}
+}
+
+// process sets the maps and process parameters in the BPMN model.
+func (v *reflectValue) process(q *quantity) {
+	v.ProcessExec = make([]bool, q.Process)
+	v.ProcessType = make([]string, q.Process)
+	v.ProcessHash = make([]string, q.Process)
+	v.ParticipantHash = make([]string, q.Participant)
+	if q.Pool > 0 {
+		v.multipleProcess(q)
+	} else {
+		v.singleProcess(q)
+	}
+}
+
+/*
+ * @Note: single process related
  */
 
 // nonAnonym sets the IsExecutable field to true and populates the reflection fields with hash values.
@@ -148,9 +170,6 @@ func (v *reflectValue) setIsExecutable(configFields map[int]string) {
 // (Note: this method is used in a single process (Note: maybe redudant;).
 func (v *reflectValue) populateReflectionFields(q *quantity, reflectionFields map[int]string) {
 	for _, field := range reflectionFields {
-		q.countProcess(field)
-		q.countFlow(field)
-		q.countElement(field)
 		f := v.Target.FieldByName(field)
 		fName, _ := v.Target.Type().FieldByName(field)
 		typ := typ(fName.Name)
@@ -161,7 +180,7 @@ func (v *reflectValue) populateReflectionFields(q *quantity, reflectionFields ma
 
 // singleProcess ...
 // (Note: this method is used in a single process and not in usage. Do I need it?)
-func (v *reflectValue) singleProcess(q *quantity, m *mapping) {
+func (v *reflectValue) singleProcess(q *quantity) {
 	for i := 0; i < v.TargetNumField; i++ {
 		field := v.Target.Field(i)
 		fieldType := v.Target.Type().Field(i)
@@ -174,7 +193,7 @@ func (v *reflectValue) singleProcess(q *quantity, m *mapping) {
 			v.Process[0].MethodByName("SetName").Call([]reflect.Value{reflect.ValueOf(fieldType.Name)})
 		}
 	}
-	methodCalls := methods(q)
+	methodCalls := methods(q) // look at internal.go
 	for _, call := range methodCalls {
 		method := v.Process[0].MethodByName(call.name)
 		if method.IsValid() && call.arg > 0 {
@@ -184,30 +203,27 @@ func (v *reflectValue) singleProcess(q *quantity, m *mapping) {
 	v.invokeElementsFromProcess()
 }
 
-// invokeElementFromProcess ...
-// (Note: this method is used in a single process)
-func (v *reflectValue) invokeElementsFromProcess() {
-	for i := 0; i < v.TargetNumField; i++ {
-		fieldValue := v.Target.Field(i)
-		fieldType := v.Target.Type().Field(i)
-		switch fieldValue.Kind() {
+/*
+ * @Note: multiple processes related
+ */
+
+// anonym sets the fields in the BPMN model.
+func (v *reflectValue) anonym(field string, q *quantity) {
+	targetFieldByName := v.Target.FieldByName(field)
+	targetNumField := targetFieldByName.NumField()
+	for i := 0; i < targetNumField; i++ {
+		name := targetFieldByName.Type().Field(i).Name
+		switch targetFieldByName.Field(i).Kind() {
 		case reflect.Bool:
-			continue
+			v.config(name, i, targetFieldByName)
 		case reflect.Struct:
-			t := fieldValue.FieldByName("Type").String()
-			h := fieldValue.FieldByName("Hash").String()
-			if strings.Contains(fieldType.Name, "From") {
-				callFlows() // Note: build the flows. Function is incomplete (look at internal.go).
-			} else {
-				callMethods(v.Process[0], fieldType.Name, t, h)
-			}
+			//q.countFlow(name)    // Note: should I count here?
+			//q.countElement(name) // Note: should I count here?
+			v.current(i, targetFieldByName)
+			v.next(i, targetFieldByName)
 		}
 	}
 }
-
-/*
- * @Note: The following methods are used in multiple processes.
- */
 
 // collaboration sets up the collaboration in the BPMN model.
 func (v *reflectValue) collaboration(q *quantity) {
@@ -225,86 +241,79 @@ func (v *reflectValue) collaboration(q *quantity) {
 	}
 }
 
-// pool assigns the field Pool to a reflected value.
-// (Note: walk through m.Anonym  is maybe redudant)
-func (v *reflectValue) pool(q *quantity, m *mapping) {
-	for _, anonymField := range m.Anonym {
-		if strings.Contains(anonymField, "Pool") {
-			v.Pool = v.Target.FieldByName(anonymField)
-			q.countFieldsInPool(v)
-			q.Pool++
-			break
-		}
-	}
-}
-
-// reflectProcess reflects the processes in the BPMN model.
-// (Note: instead of using two functions to fullfill the reflection for a process,
-// it is possible to use a single function).
-func (v *reflectValue) reflectProcess(q *quantity) {
-	v.Process = make([]reflect.Value, q.Process)
-	v.Def.MethodByName("SetProcess").Call([]reflect.Value{reflect.ValueOf(q.Process)})
-	for j := 0; j < q.Process; j++ {
-		v.Process[j] = v.Def.MethodByName("GetProcess").Call([]reflect.Value{reflect.ValueOf(j)})[0]
-	}
-}
-
-// process sets the maps and process parameters in the BPMN model.
-func (v *reflectValue) process(q *quantity, m *mapping) {
-	v.ProcessExec = make([]bool, q.Process)
-	v.ProcessType = make([]string, q.Process)
-	v.ProcessHash = make([]string, q.Process)
-	v.ParticipantHash = make([]string, q.Participant)
+// multipleProcess processes multiple processes in the BPMN model.
+func (v *reflectValue) multipleProcess(q *quantity) {
 	l, j, n := 0, 0, 0
-	if q.Pool > 0 {
-		for i := 0; i < v.Pool.NumField(); i++ {
-			name := v.Pool.Type().Field(i).Name
-			field := v.Pool.Field(i)
-			if strings.Contains(name, "IsExecutable") {
-				if field.IsValid() {
-					v.ProcessExec[j] = field.Bool()
-					j++
-				}
-			}
-			if strings.Contains(name, "Process") {
-				if field.IsValid() {
-					v.ProcessHash[l] = field.FieldByName("Hash").String()
-					v.ProcessType[l] = field.FieldByName("Type").String()
-					l++
-				}
-			}
-			if strings.Contains(name, "Participant") {
-				if field.IsValid() {
-					v.ParticipantHash[n] = field.FieldByName("Hash").String()
-					n++
-				}
+	for i := 0; i < v.Pool.NumField(); i++ {
+		name := v.Pool.Type().Field(i).Name
+		field := v.Pool.Field(i)
+		if strings.Contains(name, "IsExecutable") {
+			if field.IsValid() {
+				v.ProcessExec[j] = field.Bool()
+				j++
 			}
 		}
-		for i := 0; i < q.Process; i++ {
-			if i == 0 {
-				v.Process[i].MethodByName("SetIsExecutable").Call([]reflect.Value{reflect.ValueOf(v.ProcessExec[i])})
-			}
-			v.Process[i].MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(v.ProcessType[i]), reflect.ValueOf(v.ProcessHash[i])})
-			v.Process[i].MethodByName("SetName").Call([]reflect.Value{reflect.ValueOf(v.ProcessName[i])})
-			for method, arg := range q.ProcessElements[i] {
-				methodName := fmt.Sprintf("Set%s", method)
-				v.Process[i].MethodByName(methodName).Call([]reflect.Value{reflect.ValueOf(arg)})
+		if strings.Contains(name, "Process") {
+			if field.IsValid() {
+				v.ProcessHash[l] = field.FieldByName("Hash").String()
+				v.ProcessType[l] = field.FieldByName("Type").String()
+				l++
 			}
 		}
-		v.processElements(q)
-	} else {
-		v.singleProcess(q, m)
+		if strings.Contains(name, "Participant") {
+			if field.IsValid() {
+				v.ParticipantHash[n] = field.FieldByName("Hash").String()
+				n++
+			}
+		}
+	}
+	for i := 0; i < q.Process; i++ {
+		if i == 0 {
+			v.Process[i].MethodByName("SetIsExecutable").Call([]reflect.Value{reflect.ValueOf(v.ProcessExec[i])})
+		}
+		v.Process[i].MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(v.ProcessType[i]), reflect.ValueOf(v.ProcessHash[i])})
+		v.Process[i].MethodByName("SetName").Call([]reflect.Value{reflect.ValueOf(v.ProcessName[i])})
+		for method, arg := range q.ProcessElements[i] {
+			methodName := fmt.Sprintf("Set%s", method)
+			v.Process[i].MethodByName(methodName).Call([]reflect.Value{reflect.ValueOf(arg)})
+		}
+	}
+	v.processElements(q)
+}
+
+/*
+ * @Note: process related (both methods should be refactored to one method)
+ *        I like the name processElements, so that I will keep it.
+ */
+
+// invokeElementFromProcess
+// (Note: this method is used in a single process)
+func (v *reflectValue) invokeElementsFromProcess() {
+	for i := 0; i < v.TargetNumField; i++ {
+		field := v.Target.Field(i)
+		fieldType := v.Target.Type().Field(i)
+		switch field.Kind() {
+		case reflect.Bool:
+			continue
+		case reflect.Struct:
+			t := field.FieldByName("Type").String()
+			h := field.FieldByName("Hash").String()
+			if strings.Contains(fieldType.Name, "From") {
+				callFlows() // Note: build the flows. Function is incomplete (look at internal.go).
+			} else {
+				callMethods(v.Process[0], fieldType.Name, t, h)
+			}
+		}
 	}
 }
 
-// invokeElementFromProcesses processes elements from the quantity and updates the reflectValue.
-// (Note: handlers having a lot of args)
+// processElements processes elements from the quantity and updates the reflectValue.
 func (v *reflectValue) processElements(q *quantity) {
 
 	for i, processName := range v.ProcessName {
 
-		field := v.Target.FieldByName(processName) // Note: this scheme is also used in injectTarget
-		numFields := field.NumField()              // Note: this scheme is also used in injectTarget
+		field := v.Target.FieldByName(processName) // Note: this scheme is also used in target
+		numFields := field.NumField()              // Note: this scheme is also used in target
 
 		// Get the number of elements to build the process
 		numFlows := q.ProcessElements[i]["SequenceFlow"]
@@ -338,7 +347,7 @@ func (v *reflectValue) processElements(q *quantity) {
 			typ := field.Field(j).FieldByName("Type").String()
 			hash := field.Field(j).FieldByName("Hash").String()
 			nextHash := getNextHash(field, j, numFields)
-			extName := extractLastTwoWords(name)
+			extName := extractLastTwoWords(name) // Note: extract words is better than strings.Contains
 
 			// Use local variables to hold the index values
 			startEventIndex := indices["startEventIndex"]
@@ -373,7 +382,38 @@ func (v *reflectValue) processElements(q *quantity) {
 				indices["scriptTaskIndex"] = scriptTaskIndex
 			}
 		}
-		log.Printf("indices: %v", indices)
-		log.Print("-------------------------")
+	}
+}
+
+/*
+ * @Note: handlers called in NewReflectDI
+ *        Maybe put them together in a single method?
+ *        Or better single responsibilty?
+ */
+
+// handlePool assigns the field Pool to a reflected value.
+// (Note: walk through m.Anonym  is maybe redudant)
+func (v *reflectValue) handlePool(q *quantity, m *mapping) {
+	for _, anonymField := range m.Anonym {
+		if strings.Contains(anonymField, "Pool") {
+			v.Pool = v.Target.FieldByName(anonymField)
+			q.countFieldsInPool(v)
+			q.countFieldsInProcess2(v)
+			q.Pool++
+			break
+		}
+	}
+}
+
+// handleSingle ...
+// Define
+func (v *reflectValue) handleSingle(q *quantity, m *mapping) {
+	for _, bpmnType := range m.BPMNType {
+		if strings.Contains(bpmnType, "Process") {
+			v.ProcessName = append(v.ProcessName, v.Name)
+			q.countFieldsInProcess2(v)
+			q.Process++
+			break
+		}
 	}
 }

@@ -87,8 +87,8 @@ type (
 
 func main() {
 
-	exampleProcess := NewReflectDI(RentingProcess{}).(RentingProcess)
-	//exampleProcess := NewReflectDI(ExampleProcess{}).(ExampleProcess)
+	//exampleProcess := NewReflectDI(RentingProcess{}).(RentingProcess)
+	exampleProcess := NewReflectDI(ExampleProcess{}).(ExampleProcess)
 	log.Printf("exampleProcess.Target: %+#v", exampleProcess) // represents the Target
 	log.Print("-------------------------")
 	log.Printf("exampleProcess.Def: %+#v", exampleProcess.Def) // represents the model to create

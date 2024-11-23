@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"hash/fnv"
-	"log"
 	"reflect"
 	"regexp"
 	"strings"
@@ -94,6 +93,8 @@ func callSetters(el reflect.Value, method, name, typ, hash string) {
 // If the quantity is greater than 0, then the method is called with the
 // corresponding argument. Eitherwise, the method is not called and
 // the struct slice value in the model will be nil.
+
+// rebuild this function
 func methods(q *quantity) []struct {
 	name string
 	arg  int
@@ -102,17 +103,10 @@ func methods(q *quantity) []struct {
 		name string
 		arg  int
 	}{
-		{"SetStartEvent", q.StartEvent},
-		{"SetTask", q.Task},
-		{"SetUserTask", q.UserTask},
-		{"SetScriptTask", q.ScriptTask},
-		{"SetIntermediateCatchEvent", q.IntermediateCatchEvent},
-		{"SetIntermediateThrowEvent", q.IntermediateThrowEvent},
-		{"SetInclusiveGateway", q.InclusiveGateway},
-		{"SetExclusiveGateway", q.ExclusiveGateway},
-		{"SetParallelGateway", q.ParallelGateway},
-		{"SetEndEvent", q.EndEvent},
-		{"SetSequenceFlow", q.Flow},
+		{"SetStartEvent", 1},
+		{"SetTask", 1},
+		{"SetEndEvent", 1},
+		{"SetSequenceFlow", 2},
 	}
 }
 
@@ -230,7 +224,6 @@ func handleActivity(v *reflectValue, i int, name, extName, typ, hash string, num
 				(*scriptTaskIndex)++
 			}
 		default:
-			log.Printf("extName: %v", extName)
 			// Bug:
 			// If I have three tasks, only the first two are set with an ID.
 			// The tasks are counting right in quantities (e.g are 3).
