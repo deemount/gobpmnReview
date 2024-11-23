@@ -16,20 +16,34 @@ type BPMN struct {
 // NewReflectDI ...
 // (Note: looks a little bit chaotically and should be refactored)
 func NewReflectDI(p any) any {
+
+	// Create a new reflectValue
 	v := newReflectValue(p)
+
+	// Get the number of fields of the reflectValue.
 	v.TargetNumField = v.Target.NumField()
+
+	// Set the default field of the reflectValue.
 	v.Def = v.Target.FieldByName("Def")
 	if !v.Def.IsValid() {
 		fmt.Println("Def field is not valid")
 		return nil
 	}
+
+	// Set the default attributes if the field is settable.
+	// Note: I use this condition for a idea, if the v.Def can't set and needs to be a) set or b) initialized automatically right now.
+	// Othwise, a better check is above, which fullfill a validation check. It works contrary to this condition.
 	if v.Def.CanSet() {
 		definitions := NewDefinitions() // Note: I'm not sure if I should use the NewDefinitions function here. Maybe reflecting it?
 		definitions.SetDefaultAttributes()
 		v.Def.Set(reflect.ValueOf(definitions))
 	}
+
+	// Create a new mapping and quantity
 	m := new(mapping) // Note: Mapping and Quantity is a helper structure and can be put together in a single structure?
 	q := new(quantity)
+
+	// Assign the fields of the reflectValue to the corresponding maps.
 	m.Assign(v)
 
 	if len(m.Anonym) > 0 {
@@ -37,10 +51,13 @@ func NewReflectDI(p any) any {
 	} else {
 		v.handleSingle(q, m)
 	}
+
 	v.reflectProcess(q)
+
 	di := v.target(q, m) // Note: any solutions with generics here?
-	log.Printf("q: %+v", q)
+	log.Printf("quantity: %+v", q)
 	log.Print("-------------------------")
+
 	v.process(q) // Note: with the maps it is possible to build the collaboration after the processes
 	v.collaboration(q)
 
@@ -193,7 +210,10 @@ func (v *reflectValue) singleProcess(q *quantity) {
 			v.Process[0].MethodByName("SetName").Call([]reflect.Value{reflect.ValueOf(fieldType.Name)})
 		}
 	}
-	methodCalls := methods(q) // look at internal.go
+
+	// get the methods
+	methodCalls := methods() // Note: look at internal.go
+
 	for _, call := range methodCalls {
 		method := v.Process[0].MethodByName(call.name)
 		if method.IsValid() && call.arg > 0 {
@@ -398,7 +418,7 @@ func (v *reflectValue) handlePool(q *quantity, m *mapping) {
 		if strings.Contains(anonymField, "Pool") {
 			v.Pool = v.Target.FieldByName(anonymField)
 			q.countFieldsInPool(v)
-			q.countFieldsInProcess2(v)
+			q.countFieldsInProcess(v)
 			q.Pool++
 			break
 		}
@@ -411,7 +431,7 @@ func (v *reflectValue) handleSingle(q *quantity, m *mapping) {
 	for _, bpmnType := range m.BPMNType {
 		if strings.Contains(bpmnType, "Process") {
 			v.ProcessName = append(v.ProcessName, v.Name)
-			q.countFieldsInProcess2(v)
+			q.countFieldsInProcess(v)
 			q.Process++
 			break
 		}

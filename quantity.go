@@ -46,7 +46,8 @@ func (q *quantity) countFieldsInPool(v *reflectValue) {
 }
 
 // countFieldsInProcess counts the fields in a process and stores them in a map.
-func (q *quantity) countFieldsInProcess2(v *reflectValue) {
+func (q *quantity) countFieldsInProcess(v *reflectValue) {
+
 	// Initialize the ProcessElements map if nil
 	if q.ProcessElements == nil {
 		q.ProcessElements = make(map[int]map[string]int)
@@ -76,12 +77,11 @@ func (q *quantity) countFieldsInProcess2(v *reflectValue) {
 		if q.ProcessElements[i] == nil {
 			q.ProcessElements[i] = make(map[string]int)
 		}
-		field := reflect.Value{}
 
-		//  check for multiple processes
-		if len(v.ProcessName) > 1 {
+		// check for multiple processes
+		if q.Process > 1 {
 			// Get the fields of multiple processes
-			field = v.Target.FieldByName(procName)
+			field := v.Target.FieldByName(procName)
 			if !field.IsValid() {
 				log.Printf("Warning: Invalid field for process %s", procName)
 				continue

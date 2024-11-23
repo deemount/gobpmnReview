@@ -95,7 +95,7 @@ func callSetters(el reflect.Value, method, name, typ, hash string) {
 // the struct slice value in the model will be nil.
 
 // rebuild this function
-func methods(q *quantity) []struct {
+func methods() []struct {
 	name string
 	arg  int
 } {
@@ -136,6 +136,10 @@ func getNextHash(field reflect.Value, j, numFields int) string {
 }
 
 // handleStartEvent ...
+// Note: I need extName, if I have a longer string with unknown prefix in a field.
+//
+//	It's not in usage, because I'm not really sure, if it's consistent.
+//	As long as it's work with usage, the argument stays at a reminder
 func handleStartEvent(v *reflectValue, i int, name, extName, typ, hash, nextHash string, numStartEvent int, startEventIndex *int) {
 	if !strings.HasPrefix(name, "From") && *startEventIndex < numStartEvent {
 		if i > 0 && *startEventIndex == 0 {
@@ -210,8 +214,6 @@ func handleActivity(v *reflectValue, i int, name, extName, typ, hash string, num
 	if !strings.Contains(name, "From") {
 		switch extName {
 		case "UserTask":
-			// test it for many of them
-			// Note: look at the bug in default
 			if *userTaskIndex < numUserTask {
 				el := v.Process[i].MethodByName("GetUserTask").Call([]reflect.Value{reflect.ValueOf(*userTaskIndex)})[0]
 				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
@@ -224,13 +226,6 @@ func handleActivity(v *reflectValue, i int, name, extName, typ, hash string, num
 				(*scriptTaskIndex)++
 			}
 		default:
-			// Bug:
-			// If I have three tasks, only the first two are set with an ID.
-			// The tasks are counting right in quantities (e.g are 3).
-			// In my opinion, the indices are also showing a right value, which should be 2.
-			// I start to count from 0, so the last index should be 2 (which si).
-			// However, the last task is not set with an ID.
-			// So, this bug needs to be fixed for all activities and tested for alle the other elements.
 			if *taskIndex < numTask {
 				el := v.Process[i].MethodByName("GetTask").Call([]reflect.Value{reflect.ValueOf(*taskIndex)})[0]
 				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
