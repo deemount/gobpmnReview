@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -80,83 +81,93 @@ func (q *quantity) countFieldsInProcess(v *reflectValue) {
 
 		// check for multiple processes
 		if q.Process > 1 {
-			// Get the fields of multiple processes
-			field := v.Target.FieldByName(procName)
-			if !field.IsValid() {
-				log.Printf("Warning: Invalid field for process %s", procName)
+
+			// Handle multiple processes
+			if err := q.countMultipleProcessElements(v, i, procName, elements); err != nil {
+				log.Printf("Error processing multiple processes: %v", err)
 				continue
 			}
-			// Count elements in the process
-			countElements(field, i, elements, q.ProcessElements)
+
 		} else {
 
-			// Get the fields of a single process process
-			matched := false
-			for j := 0; j < len(v.Fields); j++ {
-				fieldName := v.Fields[j].Name
-				for element, info := range elements {
+			// Handle single process
+			q.countSingleProcessElements(v, i, elements)
 
-					if strings.HasPrefix(fieldName, "From") {
-						q.ProcessElements[i]["SequenceFlow"]++
-					}
-
-					if info.exactMatch {
-						if fieldName == element {
-							q.ProcessElements[i][info.name]++
-							matched = true
-							break
-						}
-					} else if !matched && strings.Contains(fieldName, element) {
-						q.ProcessElements[i][info.name]++
-						matched = true
-						break
-					}
-
-				}
-
-			}
 		}
 
 	}
 
-	log.Printf("Process elements: %v", q.ProcessElements)
-	log.Print("-------------------------")
 }
 
-// countElements counts the BPMN elements in a reflected struct field
-func countElements(field reflect.Value, processIndex int, elements map[string]struct {
+// countMultipleProcessElements handles counting for multiple processes
+func (q *quantity) countMultipleProcessElements(v *reflectValue, processIndex int, procName string, elements map[string]struct {
 	name       string
 	exactMatch bool
-}, processElements map[int]map[string]int) {
+}) error {
+	field := v.Target.FieldByName(procName)
+	if !field.IsValid() {
+		return fmt.Errorf("invalid field for process %s", procName)
+	}
 
-	for j := 0; j < field.NumField(); j++ {
-		fieldName := field.Type().Field(j).Name
+	return q.countFieldElements(field, processIndex, elements)
+}
 
-		// Only process struct fields
-		if field.Field(j).Kind() != reflect.Struct {
-			continue
-		}
+// countSingleProcessElements handles counting for a single process
+func (q *quantity) countSingleProcessElements(v *reflectValue, processIndex int, elements map[string]struct {
+	name       string
+	exactMatch bool
+}) {
+	for j := 0; j < len(v.Fields); j++ {
+		fieldName := v.Fields[j].Name
 
 		// Handle sequence flows first
 		if strings.HasPrefix(fieldName, "From") {
-			processElements[processIndex]["SequenceFlow"]++
+			q.ProcessElements[processIndex]["SequenceFlow"]++
 			continue
 		}
 
-		// Handle other elements
-		matched := false
-		for element, info := range elements {
-			if info.exactMatch {
-				if fieldName == element {
-					processElements[processIndex][info.name]++
-					matched = true
-					break
-				}
-			} else if !matched && strings.Contains(fieldName, element) {
-				processElements[processIndex][info.name]++
-				matched = true
-				break
-			}
+		q.matchAndCountElement(processIndex, fieldName, elements)
+	}
+}
+
+// countFieldElements counts elements in a reflected struct field
+func (q *quantity) countFieldElements(field reflect.Value, processIndex int, elements map[string]struct {
+	name       string
+	exactMatch bool
+}) error {
+	for j := 0; j < field.NumField(); j++ {
+		fieldName := field.Type().Field(j).Name
+
+		// Handle sequence flows first
+		if strings.HasPrefix(fieldName, "From") {
+			q.ProcessElements[processIndex]["SequenceFlow"]++
+			continue
+		}
+
+		q.matchAndCountElement(processIndex, fieldName, elements)
+	}
+	return nil
+}
+
+// matchAndCountElement matches and counts a single element.
+// seperated exact and partial matching
+func (q *quantity) matchAndCountElement(processIndex int, fieldName string, elements map[string]struct {
+	name       string
+	exactMatch bool
+}) {
+	// First try to find an exact match
+	for element, info := range elements {
+		if info.exactMatch && fieldName == element {
+			q.ProcessElements[processIndex][info.name]++
+			return // Found an exact match, no need to continue; early return
+		}
+	}
+
+	// If no exact match found, look for partial matches
+	for element, info := range elements {
+		if !info.exactMatch && strings.Contains(fieldName, element) {
+			q.ProcessElements[processIndex][info.name]++
+			return // Found a partial match, no need to continue; early return
 		}
 	}
 }

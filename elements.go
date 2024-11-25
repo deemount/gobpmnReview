@@ -1097,7 +1097,8 @@ type Incoming struct {
 
 // SetFlow ...
 func (in *Incoming) SetFlow(suffix interface{}) {
-	in.Flow = fmt.Sprintf("Flow_%s", suffix)
+	stringArg := getLastPart(suffix.(string)) // Note: using type assertion.
+	in.Flow = fmt.Sprintf("Flow_%s", stringArg)
 }
 
 // GetFlow ...
@@ -1112,7 +1113,8 @@ type Outgoing struct {
 
 // SetFlow ...
 func (out *Outgoing) SetFlow(suffix interface{}) {
-	out.Flow = fmt.Sprintf("Flow_%s", suffix)
+	stringArg := getLastPart(suffix.(string)) // Note: using type assertion.
+	out.Flow = fmt.Sprintf("Flow_%s", stringArg)
 }
 
 // GetFlow ...

@@ -27,5 +27,7 @@
 25. A big field (in my opinion) is the hash distribution algorithm. Actually the algorithm is scalled to a minimum of use case and could grew by the elements given in a process.
 26. Explain, what the hash distribution algorithm could mean in gobpmn.
 27. Describe the "typ"-function.
+28. Implement a logger.
+29. Implement error handling.
 
 Note: This list will grow in the next days.

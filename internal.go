@@ -15,7 +15,7 @@ import (
 
 // callMethods ...
 // Note: this method is uesed for a single process in a model and needs to refactored.
-// ... in progress
+// ... in progress (the solution is in multiple processes)
 // Note: if you put more than one task, event and so on in a process, the method is not working correctly.
 func callMethods(p reflect.Value, n, t, h string) {
 	method := "Get" + n
@@ -28,7 +28,7 @@ func callMethods(p reflect.Value, n, t, h string) {
 		el.MethodByName("SetOutgoing").Call([]reflect.Value{reflect.ValueOf(1)})
 		out := el.MethodByName("GetOutgoing").Call([]reflect.Value{reflect.ValueOf(0)})[0]
 		outFlowMethod := out.MethodByName("SetFlow")
-		outFlowMethod.Call([]reflect.Value{reflect.ValueOf(h)}) // Note: the h value must be shown to the next element, which is refer to
+		outFlowMethod.Call([]reflect.Value{reflect.ValueOf(h)}) // Note: the h value must be shown to the next element, which is refering to (like )
 	case strings.Contains(n, "EndEvent"):
 		el := p.MethodByName(method).Call([]reflect.Value{reflect.ValueOf(0)})[0]
 		callSetters(el, method, n, t, h)
@@ -111,20 +111,8 @@ func methods() []struct {
 }
 
 /*
- * @Multiple Processes
+ * @M hash and typ
  */
-
-// extractLastTwoWords extracts the last two words from a string
-// (Note: this method is used to get the elements out of a string)
-func extractLastTwoWords(input string) string {
-	re := regexp.MustCompile(`[A-Z][^A-Z]*`)
-	words := re.FindAllString(input, -1)
-	if len(words) < 2 {
-		return strings.Join(words, "")
-	}
-	lastTwo := words[len(words)-2:]
-	return strings.Join(lastTwo, "")
-}
 
 // getNextHash ...
 // (Note: maybe redudant? look at reflectValue method "next". Refactor?)
@@ -134,110 +122,6 @@ func getNextHash(field reflect.Value, j, numFields int) string {
 	}
 	return ""
 }
-
-// handleStartEvent ...
-// Note: I need extName, if I have a longer string with unknown prefix in a field.
-//
-//	It's not in usage, because I'm not really sure, if it's consistent.
-//	As long as it's work with usage, the argument stays at a reminder
-func handleStartEvent(v *reflectValue, i int, name, extName, typ, hash, nextHash string, numStartEvent int, startEventIndex *int) {
-	if !strings.HasPrefix(name, "From") && *startEventIndex < numStartEvent {
-		if i > 0 && *startEventIndex == 0 {
-			typ = "event"
-		}
-		el := v.Process[i].MethodByName("GetStartEvent").Call([]reflect.Value{reflect.ValueOf(*startEventIndex)})[0]
-		el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
-		el.MethodByName("SetName").Call([]reflect.Value{reflect.ValueOf(name)})
-		// a startevent has only one outgoing
-		el.MethodByName("SetOutgoing").Call([]reflect.Value{reflect.ValueOf(1)})
-		out := el.MethodByName("GetOutgoing").Call([]reflect.Value{reflect.ValueOf(0)})[0]
-		out.MethodByName("SetFlow").Call([]reflect.Value{reflect.ValueOf(nextHash)})
-		(*startEventIndex)++
-	}
-}
-
-// handleEvent ...
-func handleEvent(v *reflectValue, i int, name, extName, typ, hash string, numIntermediateCatchEvent, numIntermediateThrowEvent, numEndEvent int, intermediateCatchEventIndex, intermediateThrowEventIndex, endEventIndex *int) {
-	if !strings.Contains(name, "From") {
-		switch extName {
-		case "EndEvent":
-			if *endEventIndex < numEndEvent {
-				el := v.Process[i].MethodByName("GetEndEvent").Call([]reflect.Value{reflect.ValueOf(*endEventIndex)})[0]
-				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
-				(*endEventIndex)++
-			}
-		case "CatchEvent":
-			if *intermediateCatchEventIndex < numIntermediateCatchEvent {
-				el := v.Process[i].MethodByName("GetIntermediateCatchEvent").Call([]reflect.Value{reflect.ValueOf(*intermediateCatchEventIndex)})[0]
-				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
-				(*intermediateCatchEventIndex)++
-			}
-		case "ThrowEvent":
-			if *intermediateThrowEventIndex < numIntermediateThrowEvent {
-				el := v.Process[i].MethodByName("GetIntermediateThrowEvent").Call([]reflect.Value{reflect.ValueOf(*intermediateThrowEventIndex)})[0]
-				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
-				(*intermediateThrowEventIndex)++
-			}
-		}
-	}
-}
-
-// handleFlow ...
-func handleFlow(v *reflectValue, i int, typ, hash string, numFlows int, flowIndex *int) {
-	if *flowIndex < numFlows {
-		el := v.Process[i].MethodByName("GetSequenceFlow").Call([]reflect.Value{reflect.ValueOf(*flowIndex)})[0]
-		el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
-		(*flowIndex)++
-	}
-}
-
-// handleGateway ...
-// (Note: no gateway is actually handled in this function)
-func handleGateway(v *reflectValue, i int, name, extName, typ, hash string, numInclusiveGateway, numParallelGateway int, inclusiveGatewayIndex, exclusiveGatewayIndex *int) {
-	if !strings.Contains(name, "From") {
-		switch extName {
-		case "InclusiveGateway":
-			if *inclusiveGatewayIndex < numInclusiveGateway {
-			}
-		case "ExclusiveGateway":
-			if *exclusiveGatewayIndex < numParallelGateway {
-			}
-		case "ParallelGateway":
-			if *exclusiveGatewayIndex < numParallelGateway {
-			}
-		}
-	}
-}
-
-// handleActivity ...
-func handleActivity(v *reflectValue, i int, name, extName, typ, hash string, numTask, numUserTask, numScriptTask int, taskIndex, userTaskIndex, scriptTaskIndex *int) {
-	if !strings.Contains(name, "From") {
-		switch extName {
-		case "UserTask":
-			if *userTaskIndex < numUserTask {
-				el := v.Process[i].MethodByName("GetUserTask").Call([]reflect.Value{reflect.ValueOf(*userTaskIndex)})[0]
-				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
-				(*userTaskIndex)++
-			}
-		case "ScriptTask":
-			if *scriptTaskIndex < numScriptTask {
-				el := v.Process[i].MethodByName("GetScriptTask").Call([]reflect.Value{reflect.ValueOf(*scriptTaskIndex)})[0]
-				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
-				(*scriptTaskIndex)++
-			}
-		default:
-			if *taskIndex < numTask {
-				el := v.Process[i].MethodByName("GetTask").Call([]reflect.Value{reflect.ValueOf(*taskIndex)})[0]
-				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
-				(*taskIndex)++
-			}
-		}
-	}
-}
-
-/*
- * @Global Methods
- */
 
 // typ ...
 func typ(n string) string {
@@ -303,6 +187,124 @@ func hash(typ string) (BPMN, error) {
 	return result, nil
 }
 
+/*
+ * @ handlers for multiple processes
+ */
+
+// handleStartEvent ...
+func handleStartEvent(v *reflectValue, i int, name, extName, typ, hash, nextHash string, numStartEvent int, startEventIndex *int) {
+	if !strings.HasPrefix(name, "From") && *startEventIndex < numStartEvent {
+		if i > 0 && *startEventIndex == 0 {
+			typ = "event"
+		}
+		el := v.Process[i].MethodByName("GetStartEvent").Call([]reflect.Value{reflect.ValueOf(*startEventIndex)})[0]
+		el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
+		el.MethodByName("SetName").Call([]reflect.Value{reflect.ValueOf(name)})
+		// a startevent has only one outgoing
+		el.MethodByName("SetOutgoing").Call([]reflect.Value{reflect.ValueOf(1)})
+		out := el.MethodByName("GetOutgoing").Call([]reflect.Value{reflect.ValueOf(0)})[0]
+		out.MethodByName("SetFlow").Call([]reflect.Value{reflect.ValueOf(nextHash)})
+		(*startEventIndex)++
+	}
+}
+
+// handleEvent ...
+func handleEvent(v *reflectValue, i int, name, extName, typ, hash string, numIntermediateCatchEvent, numIntermediateThrowEvent, numEndEvent int, intermediateCatchEventIndex, intermediateThrowEventIndex, endEventIndex *int) {
+	if !strings.HasPrefix(name, "From") {
+		switch extName {
+		case "EndEvent":
+			if *endEventIndex < numEndEvent {
+				el := v.Process[i].MethodByName("GetEndEvent").Call([]reflect.Value{reflect.ValueOf(*endEventIndex)})[0]
+				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
+				(*endEventIndex)++
+			}
+		case "CatchEvent":
+			if *intermediateCatchEventIndex < numIntermediateCatchEvent {
+				el := v.Process[i].MethodByName("GetIntermediateCatchEvent").Call([]reflect.Value{reflect.ValueOf(*intermediateCatchEventIndex)})[0]
+				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
+				(*intermediateCatchEventIndex)++
+			}
+		case "ThrowEvent":
+			if *intermediateThrowEventIndex < numIntermediateThrowEvent {
+				el := v.Process[i].MethodByName("GetIntermediateThrowEvent").Call([]reflect.Value{reflect.ValueOf(*intermediateThrowEventIndex)})[0]
+				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
+				(*intermediateThrowEventIndex)++
+			}
+		}
+	}
+}
+
+// handleActivity ...
+func handleActivity(v *reflectValue, i int, name, extName, typ, hash string, numTask, numUserTask, numScriptTask int, taskIndex, userTaskIndex, scriptTaskIndex *int) {
+	if !strings.Contains(name, "From") {
+		switch extName {
+		case "UserTask":
+			// test it for many of them
+			// Note: look at the bug in default
+			if *userTaskIndex < numUserTask {
+				el := v.Process[i].MethodByName("GetUserTask").Call([]reflect.Value{reflect.ValueOf(*userTaskIndex)})[0]
+				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
+				(*userTaskIndex)++
+			}
+		case "ScriptTask":
+			if *scriptTaskIndex < numScriptTask {
+				el := v.Process[i].MethodByName("GetScriptTask").Call([]reflect.Value{reflect.ValueOf(*scriptTaskIndex)})[0]
+				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
+				(*scriptTaskIndex)++
+			}
+		default:
+			if *taskIndex < numTask {
+				el := v.Process[i].MethodByName("GetTask").Call([]reflect.Value{reflect.ValueOf(*taskIndex)})[0]
+				el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
+				(*taskIndex)++
+			}
+		}
+	}
+}
+
+// FieldInfo holds information about a field being processed
+type FieldInfo struct {
+	name     string
+	typ      string
+	hash     string
+	nextHash string
+	extName  string
+}
+
+// extractFieldInfo gathers all necessary field information
+func extractFieldInfo(field reflect.Value, index int) FieldInfo {
+	return FieldInfo{
+		name:     field.Type().Field(index).Name,
+		typ:      field.Field(index).FieldByName("Type").String(),
+		hash:     field.Field(index).FieldByName("Hash").String(),
+		nextHash: getNextHash(field, index, field.NumField()),
+		extName:  extractLastTwoWords(field.Type().Field(index).Name),
+	}
+}
+
+func initializeIndices() map[string]int {
+	return map[string]int{
+		"startEventIndex":             0,
+		"endEventIndex":               0,
+		"intermediateCatchEventIndex": 0,
+		"intermediateThrowEventIndex": 0,
+		"taskIndex":                   0,
+		"userTaskIndex":               0,
+		"scriptTaskIndex":             0,
+		"flowIndex":                   0,
+		"inclusiveGatewayIndex":       0,
+		"parallelGatewayIndex":        0,
+	}
+}
+
+func isValidField(info FieldInfo) bool {
+	return info.name != "" && info.typ != ""
+}
+
+/*
+ * @ strings
+ */
+
 // extractPrefixBeforeProcess extracts the prefix before the word "Process" in a string.
 // The method returns the prefix as a string, which is used as the name of the process.
 // (Note: the mthod is used two times: first in newReflectValue (reflect_di.go) and second countFieldsInPool (quantities.go))
@@ -313,4 +315,39 @@ func extractPrefixBeforeProcess(input string) string {
 		return match[1]
 	}
 	return ""
+}
+
+// extractLastTwoWords extracts the last two words from a string
+// (Note: this method is used to get the elements out of a string)
+func extractLastTwoWords(input string) string {
+	re := regexp.MustCompile(`[A-Z][^A-Z]*`)
+	words := re.FindAllString(input, -1)
+	if len(words) < 2 {
+		return strings.Join(words, "")
+	}
+	lastTwo := words[len(words)-2:]
+	return strings.Join(lastTwo, "")
+}
+
+// getLastPart gibt den letzten Teil eines Snake-Case-Strings zurück.
+// If no Snake-Case-String, return the original string.
+func getLastPart(input string) string {
+	if strings.Contains(input, "_") {
+		parts := strings.Split(input, "_")
+		// Gib den letzten Teil zurück
+		return parts[len(parts)-1]
+	}
+	// Kein Snake-Case-String, gib den Original-String zurück
+	return input
+}
+
+// trimDoublePart cuts the double part of a string.
+func trimDoublePart(input string) string {
+	parts := strings.Split(input, "_")
+	if len(parts) >= 3 && parts[0] == parts[1] {
+		// if the first two parts are equal, we return the rest of the string
+		return strings.Join(parts[1:], "_")
+	}
+	// if the first two parts are not equal, we return the input string
+	return input
 }

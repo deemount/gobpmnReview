@@ -87,18 +87,59 @@ type (
 
 func main() {
 
-	//exampleProcess := NewReflectDI(RentingProcess{}).(RentingProcess)
+	/*
+	 * ExampleProcess
+	 */
+
 	exampleProcess := NewReflectDI(ExampleProcess{}).(ExampleProcess)
+
+	// manipulate the incoming and outgoing in a task in the process model
+
+	// set incoming for task
+	exampleProcess.Def.GetProcess(0).GetTask(0).SetIncoming(1)
+
+	// dereferencing the pointer
+	var incomingHash string = *exampleProcess.Def.GetProcess(0).GetStartEvent(0).GetOutgoing(0).GetFlow()
+	exampleProcess.Def.GetProcess(0).GetTask(0).GetIncoming(0).SetFlow(incomingHash)
+
+	// set outgoing for task
+	exampleProcess.Def.GetProcess(0).GetTask(0).SetOutgoing(1)
+
+	// dereferencing the pointer
+	var outgoingHash string = *exampleProcess.Def.GetProcess(0).GetEndEvent(0).GetIncoming(0).GetFlow()
+	exampleProcess.Def.GetProcess(0).GetTask(0).GetOutgoing(0).SetFlow(outgoingHash)
+
+	// some logging messages for the terminal
 	log.Printf("exampleProcess.Target: %+#v", exampleProcess) // represents the Target
 	log.Print("-------------------------")
 	log.Printf("exampleProcess.Def: %+#v", exampleProcess.Def) // represents the model to create
 	log.Print("-------------------------")
 	fmt.Printf("Size: %d\n", unsafe.Sizeof(exampleProcess))
 
-	bpmn, err := NewBPMNModeller(WithPath(), WithCounter(), WithDefinitions(exampleProcess.Def))
+	// create the process model
+	example, err := NewBPMNModeller(WithCounter(), WithDefinitions(exampleProcess.Def))
 	if err != nil {
 		panic(err)
 	}
-	bpmn.Marshal()
+	example.Marshal()
+
+	/*
+	 * RentalProcess
+	 */
+
+	rentalProcess := NewReflectDI(RentingProcess{}).(RentingProcess)
+
+	// some logging messages for the terminal
+	log.Printf("rentalProcess.Target: %+#v", rentalProcess) // represents the Target
+	log.Print("-------------------------")
+	log.Printf("rentalProcess.Def: %+#v", rentalProcess.Def) // represents the model to create
+	log.Print("-------------------------")
+	fmt.Printf("Size: %d\n", unsafe.Sizeof(rentalProcess))
+
+	rental, err := NewBPMNModeller(WithCounter(), WithDefinitions(rentalProcess.Def))
+	if err != nil {
+		panic(err)
+	}
+	rental.Marshal()
 
 }
