@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 // Collaboration
@@ -102,6 +103,22 @@ func (participant *Participant) SetProcessRef(typ string, suffix interface{}) {
 func (p Participant) GetProcessRef() *string {
 	return &p.ProcessRef
 }
+
+// processElement represents a BPMN process element type
+type processElement string
+
+const (
+	startEvent             processElement = "StartEvent"
+	endEvent               processElement = "EndEvent"
+	intermediateCatchEvent processElement = "IntermediateCatchEvent"
+	intermediateThrowEvent processElement = "IntermediateThrowEvent"
+	inclusiveGateway       processElement = "InclusiveGateway"
+	exclusiveGateway       processElement = "ExclusiveGateway"
+	parallelGateway        processElement = "ParallelGateway"
+	userTask               processElement = "UserTask"
+	scriptTask             processElement = "ScriptTask"
+	task                   processElement = "Task"
+)
 
 // Process
 type (
@@ -1120,4 +1137,20 @@ func (out *Outgoing) SetFlow(suffix interface{}) {
 // GetFlow ...
 func (out Outgoing) GetFlow() *string {
 	return &out.Flow
+}
+
+/*
+ * @helper
+ */
+
+// getLastPart returns the last part of a string, which is separated by an underscore.
+// If no Snake-Case-String, return the original string.
+func getLastPart(input string) string {
+	if strings.Contains(input, "_") {
+		parts := strings.Split(input, "_")
+		// Gib den letzten Teil zurück
+		return parts[len(parts)-1]
+	}
+	// no Snake-Case-String. Return the original string.
+	return input
 }

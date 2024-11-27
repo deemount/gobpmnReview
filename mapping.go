@@ -4,8 +4,8 @@ import "reflect"
 
 // mapping ...
 type mapping struct {
-	Anonym   map[int]string
-	Config   map[int]string
+	Anonym,
+	Config,
 	BPMNType map[int]string
 }
 

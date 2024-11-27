@@ -72,26 +72,26 @@ func (q *quantity) countFieldsInProcess(v *reflectValue) {
 		"From":                   {"SequenceFlow", false},
 	}
 
-	// Process each process name
-	for i, procName := range v.ProcessName {
+	// process each process name
+	for processIdx, processName := range v.ProcessName {
 		// Initialize the inner map for this process
-		if q.ProcessElements[i] == nil {
-			q.ProcessElements[i] = make(map[string]int)
+		if q.ProcessElements[processIdx] == nil {
+			q.ProcessElements[processIdx] = make(map[string]int)
 		}
 
 		// check for multiple processes
 		if q.Process > 1 {
 
-			// Handle multiple processes
-			if err := q.countMultipleProcessElements(v, i, procName, elements); err != nil {
+			// handle multiple processes
+			if err := q.countMultipleProcessElements(v, processIdx, processName, elements); err != nil {
 				log.Printf("Error processing multiple processes: %v", err)
 				continue
 			}
 
 		} else {
 
-			// Handle single process
-			q.countSingleProcessElements(v, i, elements)
+			// handle single process
+			q.countSingleProcessElements(v, processIdx, elements)
 
 		}
 
@@ -138,7 +138,7 @@ func (q *quantity) countFieldElements(field reflect.Value, processIndex int, ele
 	for j := 0; j < field.NumField(); j++ {
 		fieldName := field.Type().Field(j).Name
 
-		// Handle sequence flows first
+		// handle sequence flows first
 		if strings.HasPrefix(fieldName, "From") {
 			q.ProcessElements[processIndex]["SequenceFlow"]++
 			continue
@@ -150,7 +150,7 @@ func (q *quantity) countFieldElements(field reflect.Value, processIndex int, ele
 }
 
 // matchAndCountElement matches and counts a single element.
-// seperated exact and partial matching
+// Note: seperated exact and partial matching
 func (q *quantity) matchAndCountElement(processIndex int, fieldName string, elements map[string]struct {
 	name       string
 	exactMatch bool

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"regexp"
 	"strings"
 )
 
@@ -43,8 +44,8 @@ func (ep *ElementProcessor) createProcessingConfig(processIndex int, field refle
  * @multiple processes
  */
 
-// ProcessElements processes all elements across multiple processes
-func (ep *ElementProcessor) ProcessElements() {
+// ProcessMultipleElement processes all elements across multiple processes
+func (ep *ElementProcessor) ProcessMultipleElement() {
 	for i, processName := range ep.value.ProcessName {
 		field := ep.value.Target.FieldByName(processName)
 		if !field.IsValid() {
@@ -102,12 +103,21 @@ func (ep *ElementProcessor) processSingleStructField(field reflect.Value, fieldT
 	typ := field.FieldByName("Type").String()
 	hash := field.FieldByName("Hash").String()
 
-	if strings.Contains(fieldType.Name, "From") {
+	if strings.HasPrefix(fieldType.Name, "From") {
 		callFlows() // Note: helper function in internal.go (not ready yet)
 		return
 	}
 
-	callMethods(ep.value.Process[0], fieldType.Name, typ, hash) // Note: helper funtion in internal.go (not ready yet)
+	handler := newElementHandler(ep.value.Process[0], fieldType.Name, typ, hash)
+	handler.handleElement()
+
+}
+
+// callFlows this method is not completed
+// (Note: this method is used for a single process in model)
+// ... in progress
+func callFlows() {
+	log.Printf("Flow element detected")
 }
 
 /*
@@ -371,10 +381,74 @@ func (ep *ElementProcessor) handleFlow(processIndex int, info FieldInfo, config 
 
 	if *flowIdx < config.counts["Flow"] {
 		el := ep.value.Process[processIndex].MethodByName("GetSequenceFlow").Call([]reflect.Value{reflect.ValueOf(*flowIdx)})[0]
-		el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(typ), reflect.ValueOf(hash)})
+		el.MethodByName("SetID").Call([]reflect.Value{reflect.ValueOf(info.typ), reflect.ValueOf(info.hash)})
 		(*flowIdx)++
 	}
 
 	config.indices["flowIndex"] = indices.flow
 
+}
+
+/*
+ * @helpers
+ */
+
+// FieldInfo holds information about a field being processed
+type FieldInfo struct {
+	name     string
+	typ      string
+	hash     string
+	nextHash string
+	extName  string
+}
+
+// extractFieldInfo gathers all necessary field information
+func extractFieldInfo(field reflect.Value, index int) FieldInfo {
+	return FieldInfo{
+		name:     field.Type().Field(index).Name,
+		typ:      field.Field(index).FieldByName("Type").String(),
+		hash:     field.Field(index).FieldByName("Hash").String(),
+		nextHash: getNextHash(field, index, field.NumField()),
+		extName:  extractLastTwoWords(field.Type().Field(index).Name),
+	}
+}
+
+// getNextHash ...
+// (Note: maybe redudant? look at reflectValue method "next". Refactor?)
+func getNextHash(field reflect.Value, j, numFields int) string {
+	if j+1 < numFields {
+		return field.Field(j + 1).FieldByName("Hash").String()
+	}
+	return ""
+}
+
+// extractLastTwoWords extracts the last two words from a string
+// (Note: this method is used to get the elements out of a string)
+func extractLastTwoWords(input string) string {
+	re := regexp.MustCompile(`[A-Z][^A-Z]*`)
+	words := re.FindAllString(input, -1)
+	if len(words) < 2 {
+		return strings.Join(words, "")
+	}
+	lastTwo := words[len(words)-2:]
+	return strings.Join(lastTwo, "")
+}
+
+func initializeIndices() map[string]int {
+	return map[string]int{
+		"startEventIndex":             0,
+		"endEventIndex":               0,
+		"intermediateCatchEventIndex": 0,
+		"intermediateThrowEventIndex": 0,
+		"taskIndex":                   0,
+		"userTaskIndex":               0,
+		"scriptTaskIndex":             0,
+		"flowIndex":                   0,
+		"inclusiveGatewayIndex":       0,
+		"parallelGatewayIndex":        0,
+	}
+}
+
+func isValidField(info FieldInfo) bool {
+	return info.name != "" && info.typ != ""
 }
